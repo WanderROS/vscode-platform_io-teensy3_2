@@ -3,7 +3,7 @@
 #include <SPI.h>
 #include "../lib/TFT_ST7735/fonts/fluide_caps.h"
 #include <lvgl.h>
-
+#include <SoftwareSerial.h>
 /*
 Teensy3.x and Arduino's
 You are using 4 wire SPI here, so:
@@ -89,11 +89,35 @@ void setup()
   lv_disp_drv_register(&disp_drv);
 
   lv_example_event_1();
-}
 
+  // 调试用的串口
+  Serial.begin(9600);
+  Serial.println("默认串口初始化！");
+  Serial1.setRX(21);
+  Serial1.setTX(5);
+  Serial1.begin(9600);
+}
+String inputString = "test";
 void loop()
 {
   // put your main code here, to run repeatedly:
   lv_timer_handler(); /* let the GUI do its work */
-  delay(5);
+  delay(1);
+  // Serial1.println("串口1初始化！");
+  while (Serial1.available())
+  {
+    // get the new byte:
+    char inChar = (char)Serial1.read();
+    Serial.print(inChar);
+  }
+}
+
+void serialEvent()
+{
+  while (Serial.available())
+  {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    Serial1.print(inChar);
+  }
 }
