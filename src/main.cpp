@@ -150,11 +150,47 @@ unsigned char orderCheckSum(char *buffer, int len)
 // 项目号
 uint16_t projectNo = 13104;
 
+void processA0(char *buffer, int len, uint16_t projectNo)
+{
+  buffer[12] = projectNo & 0xFF;
+  buffer[13] = projectNo / 255;
+  buffer[len] = orderCheckSum(buffer, len);
+}
+void process04(char *buffer, int len, uint16_t projectNo)
+{
+  buffer[31] = projectNo & 0xFF;
+  buffer[32] = projectNo / 255;
+  buffer[len] = orderCheckSum(buffer, len);
+}
+void process03(char *buffer, int len, uint16_t projectNo)
+{
+  buffer[31] = projectNo & 0xFF;
+  buffer[32] = projectNo / 255;
+  buffer[len] = orderCheckSum(buffer, len);
+}
 // 注入内容
 void injectOrder(char *buffer, int len)
 {
+  // 设备指令小于 10 没必要注入
+  if (len >= 10)
+  {
+    // 指令
+    switch ((unsigned char)buffer[9])
+    {
+    case 0xA0:
+      processA0(buffer, len, projectNo);
+      break;
+    case 0x04:
+      process04(buffer, len, projectNo);
+      break;
+    case 0x03:
+      process03(buffer, len, projectNo);
+      break;
+    default:
+      break;
+    }
+  }
 }
-
 // 处理设备指令
 // 串口设备接收缓冲区
 char *device_recv_buffer;
@@ -196,6 +232,7 @@ void processDeviceRecvOrders(char c)
       unsigned char checkSum = orderCheckSum(device_recv_buffer, device_recv_length);
       if (checkSum == device_recv_buffer[device_recv_length - 1])
       {
+        injectOrder(device_recv_buffer, device_recv_length - 1);
         for (int i = 0; i < device_recv_length; ++i)
         {
           // 中继设备的数据出去
