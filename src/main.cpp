@@ -139,6 +139,19 @@ Recv_Status status;
 // 模组帧接收长度
 unsigned char recv_length;
 unsigned char recv_cur_index;
+/**
+ * CRC 校验
+ */
+unsigned char orderCheckSum(char *buffer, int len)
+{
+  unsigned char checksum = 0;
+  for (int i = 0; i < len - 2; i++)
+  {
+    checksum += buffer[1 + i];
+  }
+  checksum = ~checksum + 1;
+  return checksum;
+}
 
 void processOrders(char c)
 {
@@ -159,17 +172,24 @@ void processOrders(char c)
     tft.println(recv_length);
     if (status == Recv_Status::END)
     {
+      unsigned char checkSum = orderCheckSum(wifi_recv_buffer, recv_length);
+      if (checkSum == wifi_recv_buffer[recv_length - 1])
+      {
+        for (int i = 0; i < recv_length; ++i)
+        {
+          Serial.print(wifi_recv_buffer[i]);
+          tft.setCursor(i * 16 % 128, 80 + i * 16 / 128 * 16);
+          tft.print(wifi_recv_buffer[i], 16);
+        }
+        tft.setCursor(0, 48);
+        tft.println("end");
+        tft.setCursor(0, 64);
+        tft.println(checkSum, 16);
+      }
       // tft.setCursor(39, 30);
       // tft.println("receive:" + wifi_recv_buffer[1]);
-      for (int i = 0; i < recv_length; ++i)
-      {
-        Serial.print(wifi_recv_buffer[i]);
-        tft.setCursor(i * 16 % 128, 80 + i * 16 / 128 * 16);
-        tft.print(wifi_recv_buffer[i], 16);
-      }
+
       delete wifi_recv_buffer;
-      tft.setCursor(0, 64);
-      tft.println("end");
       recv_cur_index = 0;
       recv_length = 0;
     }
