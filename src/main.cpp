@@ -156,7 +156,6 @@ unsigned char orderCheckSum(char *buffer, int len)
 void processOrders(char c)
 {
   tft.setCursor(10, 16);
-  tft.clearScreen();
   tft.println("status:");
   tft.println(status);
 
@@ -179,7 +178,15 @@ void processOrders(char c)
         {
           Serial.print(wifi_recv_buffer[i]);
           tft.setCursor(i * 16 % 128, 80 + i * 16 / 128 * 16);
-          tft.print(wifi_recv_buffer[i], 16);
+          if (wifi_recv_buffer[i] > 0xf)
+          {
+            tft.print(wifi_recv_buffer[i], 16);
+          }
+          else
+          {
+            tft.print('0');
+            tft.print(wifi_recv_buffer[i], 16);
+          }
         }
         tft.setCursor(0, 48);
         tft.println("end");
@@ -209,5 +216,6 @@ void processOrders(char c)
   if (0xAA == c)
   {
     status = Recv_Status::START;
+    tft.clearScreen();
   }
 }
