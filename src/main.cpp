@@ -69,27 +69,27 @@ void lv_example_event_1(void)
   lv_label_set_text(label, "Click me!");
   lv_obj_center(label);
 }
-
+// WIFI wifi = WIFI();
 void setup()
 {
   tft.begin();
   tft.setRotation(2);
 
-  lv_init();
-  lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
+  // lv_init();
+  // lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
 
-  /*Initialize the display*/
-  static lv_disp_drv_t disp_drv;
-  lv_disp_drv_init(&disp_drv);
-  /*Change the following line to your display resolution*/
-  disp_drv.hor_res = screenWidth;
-  disp_drv.ver_res = screenHeight;
-  disp_drv.flush_cb = my_disp_flush;
-  disp_drv.draw_buf = &draw_buf;
-  lv_disp_drv_register(&disp_drv);
+  // /*Initialize the display*/
+  // static lv_disp_drv_t disp_drv;
+  // lv_disp_drv_init(&disp_drv);
+  // /*Change the following line to your display resolution*/
+  // disp_drv.hor_res = screenWidth;
+  // disp_drv.ver_res = screenHeight;
+  // disp_drv.flush_cb = my_disp_flush;
+  // disp_drv.draw_buf = &draw_buf;
+  // lv_disp_drv_register(&disp_drv);
 
-  lv_example_event_1();
-
+  // lv_example_event_1();
+  // tft.print("receive:");
   // 调试用的串口
   Serial.begin(9600);
   Serial.println("默认串口初始化！");
@@ -97,18 +97,22 @@ void setup()
   Serial1.setTX(5);
   Serial1.begin(9600);
 }
-String inputString = "test";
+extern void processOrders(char c);
 void loop()
 {
   // put your main code here, to run repeatedly:
-  lv_timer_handler(); /* let the GUI do its work */
+  // lv_timer_handler(); /* let the GUI do its work */
   delay(1);
+
   // Serial1.println("串口1初始化！");
   while (Serial1.available())
   {
     // get the new byte:
     char inChar = (char)Serial1.read();
-    Serial.print(inChar);
+    // Serial.println("默认串口初始化！");
+    processOrders(inChar);
+    // Serial.print(inChar);
+    //  wifi.processOrders(inChar);
   }
 }
 
@@ -119,5 +123,71 @@ void serialEvent()
     // get the new byte:
     char inChar = (char)Serial.read();
     Serial1.print(inChar);
+  }
+}
+
+enum Recv_Status
+{
+  START = 0,
+  RECVING,
+  END
+};
+// 串口模组接收缓冲区
+char *wifi_recv_buffer;
+// 模组接收状态
+Recv_Status status;
+// 模组帧接收长度
+unsigned char recv_length;
+unsigned char recv_cur_index;
+
+void processOrders(char c)
+{
+  tft.setCursor(10, 16);
+  tft.clearScreen();
+  tft.println("status:");
+  tft.println(status);
+
+  if (status == Recv_Status::RECVING)
+  {
+    recv_cur_index++;
+    wifi_recv_buffer[recv_cur_index] = c;
+    if (recv_cur_index == recv_length - 1)
+    {
+      status = Recv_Status::END;
+    }
+    tft.println(recv_cur_index);
+    tft.println(recv_length);
+    if (status == Recv_Status::END)
+    {
+      // tft.setCursor(39, 30);
+      // tft.println("receive:" + wifi_recv_buffer[1]);
+      for (int i = 0; i < recv_length; ++i)
+      {
+        Serial.print(wifi_recv_buffer[i]);
+        tft.setCursor(i * 16 % 128, 80 + i * 16 / 128 * 16);
+        tft.print(wifi_recv_buffer[i], 16);
+      }
+      delete wifi_recv_buffer;
+      tft.setCursor(0, 64);
+      tft.println("end");
+      recv_cur_index = 0;
+      recv_length = 0;
+    }
+  }
+
+  // 收到了0xAA,并且接收数组为空，说明是帧长度字节
+  if (status == Recv_Status::START)
+  {
+    wifi_recv_buffer = new char[c + 1];
+    status = Recv_Status::RECVING;
+    recv_length = c + 1;
+    wifi_recv_buffer[0] = 0xAA;
+    wifi_recv_buffer[1] = c;
+    recv_cur_index = 1;
+  }
+  // 收到了 WB01 模组的帧头;
+  if (0xAA == c)
+  {
+    status = Recv_Status::START;
   }
 }
