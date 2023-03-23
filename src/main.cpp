@@ -96,6 +96,9 @@ void setup()
   Serial1.setRX(21);
   Serial1.setTX(5);
   Serial1.begin(9600);
+  Serial3.setTX(8);
+  Serial3.setRX(7);
+  Serial3.begin(9600);
 }
 extern void processWiFiRecvOrders(char c);
 extern void processDeviceRecvOrders(char c);
@@ -115,6 +118,12 @@ void loop()
     // Serial.print(inChar);
     //  wifi.processOrders(inChar);
   }
+  while (Serial3.available())
+  {
+    // get the new byte:
+    char inChar = (char)Serial3.read();
+    processDeviceRecvOrders(inChar);
+  }
 }
 
 void serialEvent()
@@ -123,7 +132,7 @@ void serialEvent()
   {
     // get the new byte:
     char inChar = (char)Serial.read();
-    processDeviceRecvOrders(inChar);
+    // processDeviceRecvOrders(inChar);
   }
 }
 
@@ -148,7 +157,7 @@ unsigned char orderCheckSum(char *buffer, int len)
   return checksum;
 }
 // 项目号
-uint16_t projectNo = 13104;
+uint16_t projectNo = 13105;
 
 void processA0(char *buffer, int len, uint16_t projectNo)
 {
@@ -322,7 +331,7 @@ void processWiFiRecvOrders(char c)
       {
         for (int i = 0; i < recv_length; ++i)
         {
-          Serial.print(wifi_recv_buffer[i]);
+          Serial3.print(wifi_recv_buffer[i]);
           // tft.setCursor(i * 16 % 128, 48 + i * 16 / 128 * 8);
           // if (wifi_recv_buffer[i] > 0xf)
           // {
